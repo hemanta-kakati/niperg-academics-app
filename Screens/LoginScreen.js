@@ -6,7 +6,8 @@ import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { useGlobalContext } from "../global/context";
 
-const baseUrl = "http://172.16.120.26:8080/niperg-app-api/api.php?action=";
+// const baseUrl = "http://172.16.120.26:8080/niperg-app-api/api.php?action=";
+const baseUrl = "http://172.16.121.178/academics/api/user.php?action=";
 
 async function save(key, value) {
   await SecureStore.setItemAsync(key, value);
@@ -76,7 +77,7 @@ const Login = ({ navigation, route }) => {
               id: payload.login_id,
               name: payload.login_name,
               email: payload.login_email,
-              phone: payload.login_phone,
+              role: payload.login_role
             })
           );
           // save("user_name", payload.login_name);
@@ -86,7 +87,7 @@ const Login = ({ navigation, route }) => {
             id: payload.login_id,
             name: payload.login_name,
             email: payload.login_email,
-            phone: payload.login_phone,
+            role: payload.login_role
           });
 
           setIsLogged(true);

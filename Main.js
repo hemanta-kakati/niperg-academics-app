@@ -8,6 +8,7 @@ import LoginScreen from "./Screens/LoginScreen";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import WelcomeScreen from "./Screens/WelcomeScreen";
+import FacultyRegisterScreen from "./Screens/FacultyRegisterScreen";
 import SignupScreen from "./Screens/SignupScreen";
 import { useGlobalContext } from "./global/context";
 
@@ -42,6 +43,10 @@ const Main = () => {
               <Stack.Screen
                 name="WelcomeScreen"
                 component={WelcomeScreen}
+              ></Stack.Screen>
+              <Stack.Screen
+                name="FacultyRegister"
+                component={FacultyRegisterScreen}
               ></Stack.Screen>
             </>
           ) : (
