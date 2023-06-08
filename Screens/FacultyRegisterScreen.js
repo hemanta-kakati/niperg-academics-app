@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,23 +11,28 @@ import {
 import { Button as ButtonRP } from "react-native-paper";
 import DocumentScanner from "react-native-document-scanner-plugin";
 import axios from "axios";
-import RNFetchBlob from 'rn-fetch-blob';
+import { Picker } from "@react-native-picker/picker";
+import { useGlobalContext } from "../global/context";
+import DatePicker from "react-native-date-picker";
 const baseUrl =
   "http://172.16.121.178/academics/api/faculty_register.php?action=";
+  
 const FacultyRegisterScreen = () => {
-  const [date, setDate] = useState("");
-  const [facultyName, setFacultyName] = useState("");
-  const [department, setDepartment] = useState("");
+  // for datepicker
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(new Date());
+  const [faculties, setFaculties] = useState([]);
+  const [facultyId, setFacultyId] = useState(0);
   const [particulars, setParticulars] = useState("");
   const [remark, setRemark] = useState("");
-  const [document, setDocument] = useState(null);
   const [scannedImage, setScannedImage] = useState();
-
+  // const [isLoading, setIsLoading] = useState(true);
+  const { setIsLoading, isLoading } = useGlobalContext();
   // scan documents
   const scanDocument = async () => {
     // start the document scanner
     const { scannedImages } = await DocumentScanner.scanDocument({
-      croppedImageQuality: 0.8,
+      croppedImageQuality: 11,
     });
 
     console.log(scannedImages[0]);
@@ -36,71 +41,132 @@ const FacultyRegisterScreen = () => {
     if (scannedImages.length > 0) {
       setScannedImage(scannedImages[0]);
     }
-    
   };
 
+  // on load, get faculties from api
+  useEffect(() => {
+    setIsLoading(true);
+    axios
+      .get(`${baseUrl}get_faculties`)
+      .then((response) => {
+        // Handle the response data
+        console.log("faculties ", response.data);
+        setFaculties(response.data);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        // Handle any errors
+        console.error(error);
+        setIsLoading(false);
+      });
+  }, []);
+
   const handleSubmit = async () => {
+
     // create a form data object
     const formData = new FormData();
 
-    formData.append("date", date);
-    formData.append("faculty_id", 3);
-    formData.append("dept_id", 4);
+    // extract only date from date and time
+    formData.append("date", date.toISOString().split("T")[0]);
+    formData.append("faculty_id", facultyId);
     formData.append("particulars", particulars);
     formData.append("remark", remark);
 
-    const scannedImageData = await RNFetchBlob.fs.readFile(scannedImage, 'base64');
+    if (scannedImage) {
+      formData.append("file", {
+        uri: scannedImage,
+        type: "image/jpeg",
+        name: `image.jpg`,
+      });
+    }
 
-    const blob = await RNFetchBlob.polyfill.Blob.build(scannedImageData, {
-      type: 'image/jpeg',
-    });
 
-    formData.append('scanned_image', blob, 'scanned_image.jpg');
-
-    // Send the form data and scannedImage to the server or perform further actions
-    // console.log("Date:", date);
-    // console.log("Faculty Name:", facultyName);
-    // console.log("Department:", department);
-    // console.log("Particulars:", particulars);
-    // console.log("Remark:", remark);
-    // console.log("Scanned Image URI:", scannedImage);
-
-    // Use the fetch() method to send the FormData object to the server
+    console.log(formData);
 
     try {
-      // Use Axios to send the FormData object to the server
-      const response = await axios.post(`${baseUrl}save`, formData, {
+      const response = await axios.post(`http://172.16.121.178/academics/api/faculty_register.php?action=save`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      // Handle the response here
-      console.log("success ", response.data);
+
+      // const response = await axios.post(`${baseUrl}save`, formData);
+
+      console.log("success", response);
     } catch (error) {
-      // Handle any error that occurred during the request
-      console.error(error);
+      if (error.response) {
+        console.error("Server Error:", error.response.data);
+        console.error("Status Code:", error.response.status);
+        console.error("Response Headers:", error.response.headers);
+      } else if (error.request) {
+        console.error("Request Error:", error.request);
+      } else {
+        console.error("Error:", error.message);
+      }
     }
+    
   };
+
+  if (isLoading) {
+    return (
+      <View>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView>
       <View style={styles.container}>
         <Text style={styles.label}>Date:</Text>
-        <TextInput style={styles.input} value={date} onChangeText={setDate} />
-
-        <Text style={styles.label}>Faculty Name:</Text>
-        <TextInput
-          style={styles.input}
-          value={facultyName}
-          onChangeText={setFacultyName}
+        {/* <Button title={date.toDateString()} color="#fff" onPress={() => setOpen(true)} /> */}
+        <ButtonRP
+          style={{
+            marginTop: 10,
+            marginBottom: 10,
+            borderRadius: 5,
+            flexDirection: "row",
+          }}
+          icon="update"
+          mode="outlined"
+          textColor="#000"
+          title="Scan Document"
+          onPress={() => setOpen(true)}
+        >
+          {date.toDateString()}
+        </ButtonRP>
+        <DatePicker
+          modal
+          open={open}
+          date={date}
+          mode="date"
+          onConfirm={(date) => {
+            setOpen(false);
+            setDate(date);
+          }}
+          onCancel={() => {
+            setOpen(false);
+          }}
         />
 
-        <Text style={styles.label}>Department:</Text>
-        <TextInput
+        <Text style={styles.label}>Select Faculty:</Text>
+        <Picker
           style={styles.input}
-          value={department}
-          onChangeText={setDepartment}
-        />
+          selectedValue={facultyId}
+          onValueChange={(itemValue) => setFacultyId(itemValue)}
+        >
+          {faculties && faculties.length > 0 ? (
+            faculties.map((faculty, index) => (
+              <Picker.Item
+                key={index}
+                label={`${faculty.name} (${faculty.dept_alias})`}
+                value={faculty.id}
+              />
+            ))
+          ) : (
+            <Picker.Item label="No faculties found" value="" />
+          )}
+        </Picker>
 
         <Text style={styles.label}>Particulars:</Text>
         <TextInput
