@@ -7,8 +7,9 @@ import {
   StyleSheet,
   Image,
   ScrollView,
+  Alert,
 } from "react-native";
-import { Button as ButtonRP } from "react-native-paper";
+import { Button as ButtonRP, DataTable } from "react-native-paper";
 import DocumentScanner from "react-native-document-scanner-plugin";
 import axios from "axios";
 import { Picker } from "@react-native-picker/picker";
@@ -16,8 +17,9 @@ import { useGlobalContext } from "../global/context";
 import DatePicker from "react-native-date-picker";
 const baseUrl =
   "http://172.16.121.178/academics/api/faculty_register.php?action=";
-  
-const FacultyRegisterScreen = () => {
+
+const optionsPerPage = [2, 3, 4];
+const FacultyRegisterScreen = ({navigation}) => {
   // for datepicker
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(new Date());
@@ -26,8 +28,10 @@ const FacultyRegisterScreen = () => {
   const [particulars, setParticulars] = useState("");
   const [remark, setRemark] = useState("");
   const [scannedImage, setScannedImage] = useState();
-  // const [isLoading, setIsLoading] = useState(true);
   const { setIsLoading, isLoading } = useGlobalContext();
+  // for data table
+  const [page, setPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(optionsPerPage[0]);
   // scan documents
   const scanDocument = async () => {
     // start the document scanner
@@ -62,7 +66,7 @@ const FacultyRegisterScreen = () => {
   }, []);
 
   const handleSubmit = async () => {
-
+    setIsLoading(true);
     // create a form data object
     const formData = new FormData();
 
@@ -76,35 +80,58 @@ const FacultyRegisterScreen = () => {
       formData.append("file", {
         uri: scannedImage,
         type: "image/jpeg",
-        name: `image.jpg`,
+        name: `fr.jpg`,
       });
     }
-
 
     console.log(formData);
 
     try {
-      const response = await axios.post(`http://172.16.121.178/academics/api/faculty_register.php?action=save`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.post(
+        `http://172.16.121.178/academics/api/faculty_register.php?action=save`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       // const response = await axios.post(`${baseUrl}save`, formData);
 
       console.log("success", response);
+
+      const { status, msg } = response.data;
+
+      if (status == "1") {
+        Alert.alert("Success", msg);
+
+        // reset form
+        // setDate(new Date());
+        // setFacultyId(0);
+        // setParticulars("");
+        // setRemark("");
+        // setScannedImage(null);
+        // Reload the screen
+        navigation.replace('FacultyRegister');
+        // navigation.navigate("FacultyRegister");
+      } else Alert.alert("Error", msg);
     } catch (error) {
       if (error.response) {
+        Alert.alert("Error", error.response.status);
         console.error("Server Error:", error.response.data);
         console.error("Status Code:", error.response.status);
         console.error("Response Headers:", error.response.headers);
       } else if (error.request) {
         console.error("Request Error:", error.request);
+        Alert.alert("Error", error.response.status);
       } else {
         console.error("Error:", error.message);
+        Alert.alert("Error", error.response.status);
       }
     }
-    
+
+    setIsLoading(false);
   };
 
   if (isLoading) {
@@ -217,7 +244,7 @@ const FacultyRegisterScreen = () => {
           <Text style={styles.fileText}>No image scanned</Text>
         )}
 
-        <Button title="Submit" onPress={handleSubmit} />
+        <Button title="Submit" disabled={isLoading} onPress={handleSubmit} />
       </View>
     </ScrollView>
   );
