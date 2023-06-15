@@ -15,11 +15,12 @@ import axios from "axios";
 import { Picker } from "@react-native-picker/picker";
 import { useGlobalContext } from "../global/context";
 import DatePicker from "react-native-date-picker";
+import RNFS from "react-native-fs";
 const baseUrl =
   "http://172.16.121.178/academics/api/faculty_register.php?action=";
 
 const optionsPerPage = [2, 3, 4];
-const FacultyRegisterScreen = ({navigation}) => {
+const FacultyRegisterScreen = ({ navigation }) => {
   // for datepicker
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(new Date());
@@ -29,9 +30,7 @@ const FacultyRegisterScreen = ({navigation}) => {
   const [remark, setRemark] = useState("");
   const [scannedImage, setScannedImage] = useState();
   const { setIsLoading, isLoading } = useGlobalContext();
-  // for data table
-  const [page, setPage] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(optionsPerPage[0]);
+
   // scan documents
   const scanDocument = async () => {
     // start the document scanner
@@ -56,6 +55,8 @@ const FacultyRegisterScreen = ({navigation}) => {
         // Handle the response data
         console.log("faculties ", response.data);
         setFaculties(response.data);
+        // providing a default picker value, so that when user dont select any faculty or faculty happends to be the first faculty from the list, first faculty id is sent 
+        setFacultyId(response.data[0].id)
         setIsLoading(false);
       })
       .catch((error) => {
@@ -103,18 +104,21 @@ const FacultyRegisterScreen = ({navigation}) => {
 
       const { status, msg } = response.data;
 
+      // remove scanned file now since its uploaded
+      try {
+        await RNFS.unlink(scannedImage);
+        console.log("Scanned image deleted:", scannedImage);
+      } catch (error) {
+        console.error("Error deleting scanned image:", error);
+      }
+
       if (status == "1") {
         Alert.alert("Success", msg);
 
-        // reset form
-        // setDate(new Date());
-        // setFacultyId(0);
-        // setParticulars("");
-        // setRemark("");
-        // setScannedImage(null);
-        // Reload the screen
-        navigation.replace('FacultyRegister');
-        // navigation.navigate("FacultyRegister");
+        // delete the images that is stored in phone by the scanner
+
+        // replace the screen, so that the form is reseted
+        navigation.replace("FacultyRegister");
       } else Alert.alert("Error", msg);
     } catch (error) {
       if (error.response) {

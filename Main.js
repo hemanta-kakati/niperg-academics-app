@@ -1,7 +1,14 @@
-import { View, Text } from "react-native";
 import React from "react";
 import { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
+import {
+  StyleSheet,
+  PermissionsAndroid,
+  Platform,
+  Button,
+  Text,
+  View,
+  SafeAreaView,
+} from "react-native";
 import { Provider as PaperProvider } from "react-native-paper";
 import SplashScreen from "./Screens/SplashScreen";
 import LoginScreen from "./Screens/LoginScreen";
@@ -16,10 +23,55 @@ const Stack = createStackNavigator();
 
 const Main = () => {
   const global = useGlobalContext();
+  const [hasCameraPermission, setHasCameraPermission] = useState(false);
 
   const { isSplashScreen, isLogged } = global;
 
   console.log(global);
+
+  const requestCameraPermission = async () => {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.CAMERA,
+      {
+        rationale: "We need your permission to access your camera.",
+      }
+    );
+
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      setHasCameraPermission(true);
+    }
+  };
+
+  if (Platform.OS === "android") {
+    requestCameraPermission();
+  }
+
+  const handleChangePermission = async () => {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.CAMERA,
+      {
+        rationale: "We need your permission to access your camera.",
+      }
+    );
+
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      setHasCameraPermission(true);
+    }
+  };
+
+  if (!hasCameraPermission) {
+    return (
+      <SafeAreaView>
+        <View>
+          <Text>
+            You do not have camera permission. Please grant permission in the
+            settings
+          </Text>
+          <Button title="Change Permission" onPress={handleChangePermission} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <PaperProvider>
